@@ -1,11 +1,15 @@
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.PageFactory;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import pages.EducationPage;
 import pages.HomePage;
+import pages.SearchResultsPage;
 import pages.StudentsPage;
 
 import java.util.List;
@@ -21,9 +25,10 @@ public class TestsWiley {
     private static HomePage homePage;
     private static StudentsPage studentsPage;
     private static EducationPage educationPage;
+    private static SearchResultsPage searchResultsPage;
 
     @BeforeClass
-    public static void init() {
+    public static void beforeClass() {
         driver = new ChromeDriver();
 
         driver.manage().timeouts().implicitlyWait(15, TimeUnit.SECONDS);
@@ -32,15 +37,15 @@ public class TestsWiley {
         homePage = PageFactory.initElements(driver, HomePage.class);
         studentsPage = PageFactory.initElements(driver, StudentsPage.class);
         educationPage = PageFactory.initElements(driver, EducationPage.class);
+        searchResultsPage = PageFactory.initElements(driver, SearchResultsPage.class);
 
         driver.navigate().to("https://www.wiley.com/en-us");
         homePage.clickYesPopUpButton();
+    }
 
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    @Before
+    public void start() {
+        driver.navigate().to("https://www.wiley.com/en-us");
     }
 
     @AfterClass
@@ -48,22 +53,30 @@ public class TestsWiley {
         driver.close();
     }
 
+    /**
+     * Open https://www.wiley.com/en-us
+     * Check the following links are displayed in the top menu
+     * - Who We Serve
+     * - Subjects
+     * - About
+     */
     @Test
-    public void checkDisplayedLinks() {
+    public void testDisplayedLinksTopMenu() {
         assertTrue("No such element - link \"Who we serve\"", isElementPresent(homePage.getWhoWeServe()));
         assertTrue("No such element - link \"Subject\"", isElementPresent(homePage.getSubject()));
         assertTrue("No such element - link \"About\"", isElementPresent(homePage.getAbout()));
     }
 
+
+    /**
+     * Check items under Who We Serve for sub-header
+     * There are 11 items under resources sub-header
+     * Titles are  “Students”, “Instructors”, “Book Authors”, “Professionals”, “Researchers”, “Institutions”,
+     * “Librarians”, “Corporations”, “Societies”, “Journal Editors”,  “Government”
+     */
     @Test
     public void checkItemsUnderWhoWeServe() {
         homePage.clickWhoWeServe();
-
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
 
         assertNotNull(homePage.getListItemsUnderWhoWeServe());
         List<String> listText = homePage.getListTextItemsUnderWhoWeServe();
@@ -83,6 +96,12 @@ public class TestsWiley {
         assertTrue(listText.contains("Government"));
     }
 
+    /**
+     * Click “Students” item
+     * Check that https://www.wiley.com/en-us/students url is opened
+     * Check that “Students” header is displayed
+     * Check that “Learn More” links are present on the page and direct to  www.wileyplus.com site
+     */
     @Test
     public void testStudentsPage() {
         homePage.clickWhoWeServe();
@@ -96,6 +115,24 @@ public class TestsWiley {
         }
     }
 
+    /**
+     * Go to “Subjects” top menu, select “Education”
+     * Check “Education” header is displayed
+     * 13 items are displayed under “Subjects” on the left side of the screen and the texts are
+     * "Information & Library Science",
+     * "Education & Public Policy",
+     * "K-12 General",
+     * "Higher Education General",
+     * "Vocational Technology",
+     * "Conflict Resolution & Mediation (School settings)",
+     * "Curriculum Tools- General",
+     * "Special Educational Needs",
+     * "Theory of Education",
+     * "Education Special Topics",
+     * "Educational Research & Statistics",
+     * "Literacy & Reading",
+     * "Classroom Management"
+     */
     @Test
     public void testEducationPage() {
         homePage.moveToSubjects();
@@ -121,14 +158,22 @@ public class TestsWiley {
         assertTrue(linkList.contains("Classroom Management"));
     }
 
+    /**
+     * Click on the Wiley logo at the top menu (left side of the top menu)
+     * Home page is opened
+     */
     @Test
-    public void testClickLogo(){
+    public void testClickLogo() {
         homePage.clickLogo();
         assertEquals("https://www.wiley.com/en-us", driver.getCurrentUrl());
     }
 
+    /**
+     * Do not enter anything in the search input and press search button
+     * Nothing happens, home page is still displayed
+     */
     @Test
-    public void testEmptyInputSearch(){
+    public void testEmptyInputSearch() {
         String pageSource = driver.getPageSource();
 
         homePage.clearSearchInput();
@@ -140,16 +185,19 @@ public class TestsWiley {
         assertEquals("https://www.wiley.com/en-us", driver.getCurrentUrl());
     }
 
+    /**
+     * Enter “Java” and do not press search button
+     * Area with related content is displayed right under the search header
+     * On the “Suggestions” section, it has 4 words starting with “Java”
+     * On the “Products” section, there are 5 titles and each title contain “Java” word
+     */
     @Test
-    public void testAreaWithRelatedSearchContent(){
+    public void testAreaWithRelatedSearchContent() {
         homePage.clearSearchInput();
         homePage.sendKeysSearchInput("java");
 
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        WebDriverWait wait = new WebDriverWait(driver, 10);
+        wait.until(ExpectedConditions.visibilityOf(homePage.getSearchArea()));
 
         WebElement searchArea = homePage.getSearchArea();
         assertTrue(searchArea.isDisplayed());
@@ -165,13 +213,52 @@ public class TestsWiley {
         List<String> textListSearchSectionProducts = homePage.getTextListSearchSectionProducts();
 
         assertEquals(4, textListSearchSectionProducts.size());
-        textListSearchSectionProducts.forEach(s -> assertTrue(s.contains("java")));
+        textListSearchSectionProducts.forEach(s -> assertTrue(s.contains("Java")));
 
         homePage.clearSearchInput();
     }
 
-    //TODO убрать
-    public static boolean isElementPresent(WebElement element) {
+    /**
+     * Click “SEARCH” button
+     * Only titles containing “Java” are displayed
+     * There are 10 titles
+     * Each title has at least one “Add to Cart” button
+     */
+    @Test
+    public void testJavaSearchResults() {
+        homePage.clearSearchInput();
+        homePage.sendKeysSearchInput("java");
+        homePage.clickSearchButton();
+
+        List<String> listTextResultsTitles = searchResultsPage.getListTextResultsTitles();
+        assertEquals(10, listTextResultsTitles.size());
+        listTextResultsTitles.forEach(s -> assertTrue(s.contains("Java")));
+
+        searchResultsPage.getListCountsResultWithButtonAddToCart().forEach(count ->
+                assertTrue("Not all items contain a button 'ADD TO CART'", count > 0));
+    }
+
+    /**
+     * Enter “Java” in the search input at the top and press “SEARCH” button
+     * Make sure there are same 10 titles shown (as in step 8)
+     */
+    @Test
+    public void testJavaSearchResultsAgain() {
+        homePage.clearSearchInput();
+        homePage.sendKeysSearchInput("java");
+        homePage.clickSearchButton();
+
+        List<String> prevListTextResultsTitles = searchResultsPage.getListTextResultsTitles();
+
+        searchResultsPage.clearInputSearch();
+        searchResultsPage.sendKeysSearchInput("java");
+
+        List<String> nextListTextResultsTitles = searchResultsPage.getListTextResultsTitles();
+
+        assertEquals(prevListTextResultsTitles, nextListTextResultsTitles);
+    }
+
+    private static boolean isElementPresent(WebElement element) {
         try {
             element.getText();
             return true;
